@@ -1,0 +1,32 @@
+/* Status bar item states for WebDAV Sync. */
+.wds-status {
+	cursor: pointer;
+}
+.wds-status.wds-idle {
+	color: var(--text-muted);
+}
+.wds-status.wds-syncing {
+	color: var(--text-accent);
+}
+.wds-status.wds-ok {
+	color: var(--text-success, var(--text-muted));
+}
+.wds-status.wds-conflict {
+	color: var(--text-warning, var(--color-orange));
+}
+.wds-status.wds-error {
+	color: var(--text-error, var(--color-red));
+}
+
+.wds-setup-code {
+	width: 100%;
+	min-height: 5em;
+	font-family: var(--font-monospace);
+	font-size: 12px;
+	resize: vertical;
+}
+.wds-section-note {
+	color: var(--text-muted);
+	font-size: 13px;
+	margin: 0.25em 0 0.75em;
+}

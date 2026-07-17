@@ -1,0 +1,21 @@
+# IDE
+.vscode
+.idea
+*.iml
+
+# npm
+node_modules
+
+# build output (ship via releases, not the repo)
+main.js
+*.map
+
+# obsidian plugin data (may contain the WebDAV password!)
+data.json
+
+# server runtime
+server/.env
+server/data/
+
+# OS
+.DS_Store

@@ -1,0 +1,46 @@
+# WebDAV server for Obsidian WebDAV Sync.
+#
+# Two services:
+#   webdav  — a tiny Apache/mod_dav server with Basic auth (your user + password).
+#   caddy   — reverse proxy that gets a free HTTPS certificate automatically for your
+#             domain. HTTPS is what makes syncing work on iOS.
+#
+# Files live as plain files under ./data — so your notes on the VPS are just readable
+# .md files you can back up or inspect any time.
+
+services:
+  webdav:
+    image: bytemark/webdav
+    container_name: obsidian-webdav
+    restart: unless-stopped
+    environment:
+      AUTH_TYPE: Basic
+      USERNAME: ${WEBDAV_USER}
+      PASSWORD: ${WEBDAV_PASSWORD}
+    volumes:
+      - ./data:/var/lib/dav/data
+    # Quick IP-only test WITHOUT https (works on desktop + Android, NOT on iOS):
+    # uncomment the next two lines, leave DOMAIN blank, and point the plugin at
+    # http://<your-ip>:8080 with HTTPS turned off.
+    # ports:
+    #   - "8080:80"
+
+  caddy:
+    image: caddy:2
+    container_name: obsidian-caddy
+    restart: unless-stopped
+    depends_on:
+      - webdav
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,7 @@
+# Caddy fetches and renews a Let's Encrypt certificate for {$DOMAIN} automatically,
+# then forwards everything to the WebDAV container over the internal Docker network.
+# Requires: DNS A record for the domain -> this VPS, and ports 80 + 443 reachable.
+
+{$DOMAIN} {
+	reverse_proxy webdav:80
+}
