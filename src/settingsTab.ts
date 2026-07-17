@@ -5,6 +5,19 @@ import {
 	encodeSetupCodeEncrypted,
 	encodeSetupCodePlain,
 } from "./setupcode";
+import { hasConnection } from "./settings";
+
+/** Compact "time ago" in Russian for the last-sync line. */
+function formatAgo(epochMs: number): string {
+	const secs = Math.max(0, Math.floor((Date.now() - epochMs) / 1000));
+	if (secs < 60) return "только что";
+	const mins = Math.floor(secs / 60);
+	if (mins < 60) return `${mins} мин назад`;
+	const hours = Math.floor(mins / 60);
+	if (hours < 24) return `${hours} ч назад`;
+	const days = Math.floor(hours / 24);
+	return `${days} дн назад`;
+}
 
 /**
  * Settings screen. The flow mirrors how the user wants to work:
@@ -18,10 +31,81 @@ export class WebDavSettingTab extends PluginSettingTab {
 		super(app, plugin);
 	}
 
+	/** A card at the top that answers "am I connected, and when did it last sync?". */
+	private renderStatusCard(containerEl: HTMLElement): void {
+		const s = this.plugin.settings;
+		const card = containerEl.createDiv({ cls: "wds-statuscard" });
+		card.createDiv({ cls: "wds-statuscard-title", text: "Статус" });
+
+		// Connection line — live-checked when the tab opens.
+		const connRow = card.createDiv({ cls: "wds-status-row" });
+		connRow.createSpan({ cls: "wds-status-label", text: "Соединение: " });
+		const connVal = connRow.createSpan({ cls: "wds-status-value" });
+
+		const runCheck = async () => {
+			connVal.className = "wds-status-value wds-muted";
+			connVal.setText("проверяю…");
+			const res = await this.plugin.testConnection();
+			connVal.className = "wds-status-value " + (res.ok ? "wds-ok-text" : "wds-err-text");
+			connVal.setText(res.ok ? "✅ подключено" : "❌ " + res.message);
+		};
+
+		if (!hasConnection(s)) {
+			connVal.addClass("wds-muted");
+			connVal.setText("⚙️ не настроено — заполни поля ниже");
+		} else {
+			void runCheck();
+		}
+
+		// Last sync line — from persisted bookkeeping.
+		const syncRow = card.createDiv({ cls: "wds-status-row" });
+		syncRow.createSpan({ cls: "wds-status-label", text: "Последняя синхронизация: " });
+		const syncVal = syncRow.createSpan({ cls: "wds-status-value" });
+		if (s.lastSyncAt > 0) {
+			const icon = s.lastSyncState === "error" ? "✖" : s.lastSyncState === "conflict" ? "⚠" : "✔";
+			const cls =
+				s.lastSyncState === "error"
+					? "wds-err-text"
+					: s.lastSyncState === "conflict"
+						? "wds-warn-text"
+						: "wds-ok-text";
+			syncVal.addClass(cls);
+			syncVal.setText(`${icon} ${formatAgo(s.lastSyncAt)} — ${s.lastSyncText || "готово"}`);
+		} else {
+			syncVal.addClass("wds-muted");
+			syncVal.setText("ещё не было");
+		}
+
+		// Actions.
+		const btnRow = card.createDiv({ cls: "wds-status-btns" });
+		const testBtn = btnRow.createEl("button", { text: "Проверить соединение" });
+		testBtn.onclick = () => {
+			if (!hasConnection(s)) {
+				new Notice("Сначала заполни адрес, пользователя и пароль.");
+				return;
+			}
+			void runCheck();
+		};
+		const syncBtn = btnRow.createEl("button", { cls: "mod-cta", text: "Синхронизировать сейчас" });
+		syncBtn.onclick = async () => {
+			if (!hasConnection(s)) {
+				new Notice("Сначала настрой подключение.");
+				return;
+			}
+			syncBtn.disabled = true;
+			await this.plugin.runSync("manual");
+			syncBtn.disabled = false;
+			this.display(); // redraw the card with fresh last-sync info
+		};
+	}
+
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
 		const s = this.plugin.settings;
+
+		// --- Status card (the "am I connected?" answer) ----------------------------------
+		this.renderStatusCard(containerEl);
 
 		// --- Connection ------------------------------------------------------------------
 		containerEl.createEl("h2", { text: "Подключение к серверу" });

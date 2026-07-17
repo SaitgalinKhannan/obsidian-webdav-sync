@@ -30,3 +30,44 @@
 	font-size: 13px;
 	margin: 0.25em 0 0.75em;
 }
+
+/* Status card at the top of the settings tab. */
+.wds-statuscard {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 12px 14px;
+	margin: 4px 0 18px;
+	background: var(--background-secondary);
+}
+.wds-statuscard-title {
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+.wds-status-row {
+	margin: 3px 0;
+	font-size: 14px;
+}
+.wds-status-label {
+	color: var(--text-muted);
+}
+.wds-status-value {
+	font-weight: 500;
+}
+.wds-status-btns {
+	display: flex;
+	gap: 8px;
+	margin-top: 10px;
+	flex-wrap: wrap;
+}
+.wds-muted {
+	color: var(--text-muted);
+}
+.wds-ok-text {
+	color: var(--text-success, var(--color-green));
+}
+.wds-warn-text {
+	color: var(--text-warning, var(--color-orange));
+}
+.wds-err-text {
+	color: var(--text-error, var(--color-red));
+}

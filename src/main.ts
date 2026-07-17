@@ -151,10 +151,10 @@ export default class WebDavSyncPlugin extends Plugin {
 			});
 			const outcome = await engine.sync(this.index);
 			this.index = outcome.index;
-			await this.saveIndex();
 
 			const line = summaryLine(outcome.summary);
 			if (outcome.summary.errors.length > 0) {
+				await this.recordSync("error", line);
 				this.setStatus("error", line);
 				new Notice(
 					`WebDAV Sync: finished with ${outcome.summary.errors.length} error(s).\n` +
@@ -162,6 +162,7 @@ export default class WebDavSyncPlugin extends Plugin {
 					10_000,
 				);
 			} else if (outcome.summary.conflicts.length > 0) {
+				await this.recordSync("conflict", line);
 				this.setStatus("conflict", line);
 				new Notice(
 					`WebDAV Sync: ${outcome.summary.conflicts.length} conflict(s) kept as copies — nothing lost:\n` +
@@ -169,14 +170,24 @@ export default class WebDavSyncPlugin extends Plugin {
 					10_000,
 				);
 			} else {
+				await this.recordSync("ok", line);
 				this.setStatus("ok", line);
 			}
 		} catch (e) {
+			await this.recordSync("error", errText(e));
 			this.setStatus("error", "error");
 			new Notice(`WebDAV Sync error: ${errText(e)}`, 10_000);
 		} finally {
 			this.syncing = false;
 		}
+	}
+
+	/** Persist the outcome of a sync so the settings status card can show it. */
+	private async recordSync(state: "ok" | "conflict" | "error", text: string): Promise<void> {
+		this.settings.lastSyncAt = Date.now();
+		this.settings.lastSyncState = state;
+		this.settings.lastSyncText = text;
+		await this.saveIndex();
 	}
 
 	// --- side effects --------------------------------------------------------------------

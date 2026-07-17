@@ -16,6 +16,10 @@ export interface WebDavSyncSettings {
 	syncOnFileChange: boolean;
 	/** True once a successful primary setup / connect has happened on this device. */
 	configured: boolean;
+	/** Last sync bookkeeping, shown in the settings status card. */
+	lastSyncAt: number; // epoch ms, 0 = never
+	lastSyncText: string; // human summary of the last run
+	lastSyncState: "" | "ok" | "conflict" | "error";
 }
 
 export const DEFAULT_SETTINGS: WebDavSyncSettings = {
@@ -30,6 +34,9 @@ export const DEFAULT_SETTINGS: WebDavSyncSettings = {
 	syncOnStartup: true,
 	syncOnFileChange: true,
 	configured: false,
+	lastSyncAt: 0,
+	lastSyncText: "",
+	lastSyncState: "",
 };
 
 /** The subset of settings that make up a connection, shareable across devices. */
