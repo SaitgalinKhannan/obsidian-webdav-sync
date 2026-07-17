@@ -13,9 +13,11 @@ main.js
 # obsidian plugin data (may contain the WebDAV password!)
 data.json
 
-# server runtime
+# server runtime (secrets + synced data), any variant under server/
 server/.env
 server/data/
+server/**/.env
+server/**/data/
 
 # OS
 .DS_Store

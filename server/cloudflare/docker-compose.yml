@@ -1,0 +1,40 @@
+# WebDAV for Obsidian, exposed through a Cloudflare Tunnel.
+#
+# Use this instead of the Caddy variant when the server already has something on ports
+# 80/443 (another site, a reverse proxy), or when you don't want to open inbound ports at
+# all. cloudflared makes an OUTBOUND connection to Cloudflare, which terminates HTTPS for you
+# at https://<your-hostname> and forwards traffic to the webdav container over the internal
+# Docker network. Nothing on the host's 80/443 is touched.
+#
+# The container is named `obsidian-webdav` on purpose: that is the address you point the
+# tunnel's public hostname at (Service URL = http://obsidian-webdav:80).
+
+services:
+  webdav:
+    image: bytemark/webdav
+    container_name: obsidian-webdav
+    restart: unless-stopped
+    environment:
+      AUTH_TYPE: Basic
+      USERNAME: ${WEBDAV_USER}
+      PASSWORD: ${WEBDAV_PASSWORD}
+    volumes:
+      - ./data:/var/lib/dav/data
+    networks:
+      - obsidian-net
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: obsidian-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    depends_on:
+      - webdav
+    networks:
+      - obsidian-net
+
+networks:
+  obsidian-net:
+    name: obsidian-net
