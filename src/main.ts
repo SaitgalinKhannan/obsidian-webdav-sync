@@ -118,7 +118,24 @@ export default class WebDavSyncPlugin extends Plugin {
 		return true;
 	}
 
-	/** Apply a connection pasted from another device, then set up + sync here. */
+	/**
+	 * Lightweight "just connect" for a second device: verify the credentials and sync.
+	 * No explicit folder creation / "setup" step — the vault already lives on the server,
+	 * so this device only needs to connect and pull it down.
+	 */
+	async connectAndSync(): Promise<boolean> {
+		const check = await this.testConnection();
+		if (!check.ok) {
+			new Notice(`WebDAV Sync: ${check.message}`);
+			return false;
+		}
+		this.settings.configured = true;
+		await this.saveSettings();
+		await this.runSync("connect");
+		return true;
+	}
+
+	/** Apply a connection pasted from another device, then just connect + sync here. */
 	async applyConnection(cfg: ConnectionConfig): Promise<boolean> {
 		this.settings.host = cfg.host;
 		this.settings.port = cfg.port;
@@ -127,7 +144,7 @@ export default class WebDavSyncPlugin extends Plugin {
 		this.settings.password = cfg.password;
 		this.settings.remoteBaseDir = cfg.remoteBaseDir;
 		await this.saveSettings();
-		return this.runInitialSetup();
+		return this.connectAndSync();
 	}
 
 	currentConnection(): ConnectionConfig {

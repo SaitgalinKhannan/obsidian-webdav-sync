@@ -193,8 +193,8 @@ export class WebDavSettingTab extends PluginSettingTab {
 				}),
 			);
 
-		// --- Primary setup (PC) ----------------------------------------------------------
-		containerEl.createEl("h2", { text: "Первичная настройка (на ПК)" });
+		// --- Connect / primary setup -----------------------------------------------------
+		containerEl.createEl("h2", { text: "Подключение" });
 		new Setting(containerEl)
 			.setName("Проверить подключение")
 			.addButton((b) =>
@@ -207,11 +207,26 @@ export class WebDavSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Подключиться и настроить")
-			.setDesc("Создаёт папку на сервере и делает первую полную синхронизацию.")
+			.setName("Просто подключиться")
+			.setDesc("Для телефона и других устройств: подключиться и подтянуть волт с сервера.")
 			.addButton((b) =>
 				b
 					.setCta()
+					.setButtonText("Подключиться")
+					.onClick(async () => {
+						b.setDisabled(true);
+						const ok = await this.plugin.connectAndSync();
+						if (ok) new Notice("WebDAV Sync: подключено ✔");
+						b.setDisabled(false);
+						this.display();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Подключиться и настроить (первое устройство)")
+			.setDesc("Только для самого первого устройства: создаёт папку на сервере и заливает волт.")
+			.addButton((b) =>
+				b
 					.setButtonText("Подключиться и настроить")
 					.onClick(async () => {
 						b.setDisabled(true);
