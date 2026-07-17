@@ -1,6 +1,6 @@
 {
 	"name": "khannan-webdav-sync",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Sync an Obsidian vault across devices through your own VPS over WebDAV.",
 	"main": "main.js",
 	"type": "module",

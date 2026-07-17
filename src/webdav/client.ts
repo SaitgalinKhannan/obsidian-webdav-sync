@@ -54,6 +54,18 @@ export class WebDavClient {
 		return this.origin + this.encodePath(serverPath);
 	}
 
+	/**
+	 * Like [urlFor] but guarantees a trailing slash. Collections MUST be addressed with a
+	 * trailing slash: without one, Apache/mod_dav answers PROPFIND/MKCOL with a 301 redirect
+	 * to the slash form, and iOS (CFNetwork) drops the Authorization header when following
+	 * that redirect — which surfaces as a bogus 401 "wrong password". Desktop/Electron keeps
+	 * the header, which is why this only bit mobile.
+	 */
+	private urlForDir(vaultRel: string): string {
+		const u = this.urlFor(vaultRel);
+		return u.endsWith("/") ? u : u + "/";
+	}
+
 	/** Convert a decoded server path from a PROPFIND href into a vault-relative path. */
 	private toVaultRel(serverPath: string): string | null {
 		let p = serverPath.replace(/\/+$/, "");
@@ -90,7 +102,7 @@ export class WebDavClient {
 	/** Verify host/credentials without changing anything on the server. */
 	async connect(): Promise<ConnectResult> {
 		try {
-			const res = await this.raw("PROPFIND", this.urlFor(""), PROPFIND_BODY, {
+			const res = await this.raw("PROPFIND", this.urlForDir(""), PROPFIND_BODY, {
 				Depth: "0",
 				"Content-Type": "application/xml; charset=utf-8",
 			});
@@ -136,7 +148,8 @@ export class WebDavClient {
 	}
 
 	private async mkcolServerPath(serverPath: string): Promise<void> {
-		const res = await this.raw("MKCOL", this.origin + this.encodePath(serverPath));
+		// Trailing slash avoids the 301 redirect that strips auth on iOS (see urlForDir).
+		const res = await this.raw("MKCOL", this.origin + this.encodePath(serverPath) + "/");
 		// 201 created; 405 already exists; 301/302 some servers redirect an existing dir.
 		if (res.status === 201 || res.status === 405 || res.status === 301 || res.status === 302) return;
 		if (res.status === 401 || res.status === 403) {
@@ -149,7 +162,7 @@ export class WebDavClient {
 
 	/** List the immediate children (files and dirs) of a vault-relative directory. */
 	async list(vaultRelDir: string): Promise<RemoteEntry[]> {
-		const res = await this.raw("PROPFIND", this.urlFor(vaultRelDir), PROPFIND_BODY, {
+		const res = await this.raw("PROPFIND", this.urlForDir(vaultRelDir), PROPFIND_BODY, {
 			Depth: "1",
 			"Content-Type": "application/xml; charset=utf-8",
 		});
