@@ -26,7 +26,7 @@ export default class WebDavSyncPlugin extends Plugin {
 	settings: WebDavSyncSettings = { ...DEFAULT_SETTINGS };
 	private index: SyncIndex = {};
 
-	private readonly local = new VaultFs(this.app);
+	private readonly local = new VaultFs(this.app, () => this.settings.syncConfig);
 	private statusEl: HTMLElement | null = null;
 	private syncing = false;
 	private intervalId: number | null = null;
@@ -164,6 +164,7 @@ export default class WebDavSyncPlugin extends Plugin {
 		try {
 			const engine = new SyncEngine(this.newClient(), this.local, {
 				deviceName: this.settings.deviceName,
+				serverTrash: this.settings.serverTrash,
 				onProgress: (note) => this.setStatus("syncing", note),
 			});
 			const outcome = await engine.sync(this.index);

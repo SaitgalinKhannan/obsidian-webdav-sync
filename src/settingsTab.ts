@@ -364,5 +364,31 @@ export class WebDavSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}),
 			);
+
+		new Setting(containerEl)
+			.setName("Синхронизировать настройки .obsidian")
+			.setDesc(
+				"Темы, горячие клавиши, настройки плагинов. Не трогает workspace и данные этого " +
+					"плагина (с паролем). После изменений может понадобиться перезапуск Obsidian.",
+			)
+			.addToggle((t) =>
+				t.setValue(s.syncConfig).onChange(async (v) => {
+					s.syncConfig = v;
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("Удалять на сервере в корзину")
+			.setDesc(
+				"Удалённые файлы сначала копируются в папку .webdav-trash на сервере — их можно " +
+					"восстановить. Выключи, чтобы удалять сразу.",
+			)
+			.addToggle((t) =>
+				t.setValue(s.serverTrash).onChange(async (v) => {
+					s.serverTrash = v;
+					await this.plugin.saveSettings();
+				}),
+			);
 	}
 }

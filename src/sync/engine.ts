@@ -26,9 +26,14 @@ export interface LocalFs {
 
 export interface EngineOptions {
 	deviceName: string;
+	/** Move remote deletions into a recoverable trash folder instead of deleting outright. */
+	serverTrash: boolean;
 	/** Called with a short progress note so the UI can show what's happening. */
 	onProgress?: (note: string) => void;
 }
+
+/** Server-side trash folder (relative to the vault's base dir). Excluded from the sync walk. */
+const TRASH_DIR = ".webdav-trash";
 
 export interface SyncOutcome {
 	summary: SyncSummary;
@@ -130,7 +135,7 @@ export class SyncEngine {
 			if (li && !this.remoteChanged(rf!, li)) {
 				// Synced before, unchanged remotely, gone locally => local deleted it.
 				this.progress(`Deleting remote ${path}`);
-				await this.client.delete(path);
+				await this.removeRemote(path);
 				summary.deletedRemote++;
 				return false;
 			}
@@ -225,6 +230,26 @@ export class SyncEngine {
 		summary.downloaded++;
 	}
 
+	/**
+	 * Remove a file from the server. With server trash on, the file is copied into
+	 * [TRASH_DIR] first and only deleted once that copy succeeds — so a failed backup never
+	 * costs you the file. With it off, it's a plain delete.
+	 */
+	private async removeRemote(path: string): Promise<void> {
+		if (this.opts.serverTrash) {
+			let bytes: ArrayBuffer;
+			try {
+				bytes = await this.client.getBinary(path);
+			} catch {
+				return; // already gone on the server — nothing to trash or delete
+			}
+			const trashPath = `${TRASH_DIR}/${path}.${trashStamp()}`;
+			await this.ensureRemoteParent(trashPath);
+			await this.client.putBinary(trashPath, bytes); // if this throws, the delete below is skipped
+		}
+		await this.client.delete(path);
+	}
+
 	private async ensureRemoteParent(path: string): Promise<void> {
 		const idx = path.lastIndexOf("/");
 		if (idx <= 0) return;
@@ -311,6 +336,8 @@ export class SyncEngine {
 			visited.add(dir);
 			const entries = await this.client.list(dir);
 			for (const e of entries) {
+				// Never surface the trash folder as syncable content.
+				if (e.path === TRASH_DIR || e.path.startsWith(TRASH_DIR + "/")) continue;
 				if (e.isDir) {
 					if (!visited.has(e.path)) queue.push(e.path);
 				} else {
@@ -343,6 +370,11 @@ export function conflictName(path: string, device: string): string {
 
 function pad(n: number): string {
 	return n.toString().padStart(2, "0");
+}
+
+/** Filesystem-safe timestamp used to make trashed copies unique. */
+function trashStamp(): string {
+	return new Date().toISOString().replace(/[:.]/g, "-");
 }
 
 function errText(e: unknown): string {

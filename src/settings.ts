@@ -14,6 +14,10 @@ export interface WebDavSyncSettings {
 	syncIntervalMinutes: number; // 0 = off
 	syncOnStartup: boolean;
 	syncOnFileChange: boolean;
+	/** Also sync the .obsidian config folder (themes, hotkeys, plugin settings). Opt-in. */
+	syncConfig: boolean;
+	/** Move server-side deletions to a recoverable trash folder instead of deleting outright. */
+	serverTrash: boolean;
 	/** True once a successful primary setup / connect has happened on this device. */
 	configured: boolean;
 	/** Last sync bookkeeping, shown in the settings status card. */
@@ -33,6 +37,8 @@ export const DEFAULT_SETTINGS: WebDavSyncSettings = {
 	syncIntervalMinutes: 5,
 	syncOnStartup: true,
 	syncOnFileChange: true,
+	syncConfig: false,
+	serverTrash: true,
 	configured: false,
 	lastSyncAt: 0,
 	lastSyncText: "",
